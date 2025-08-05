@@ -1,0 +1,7 @@
+include: package:flutter_lints/flutter.yaml
+linter:
+  rules:
+    prefer_relative_imports: true
+    avoid_print: false
+    avoid_web_libraries_in_flutter: false
+    depend_on_referenced_packages: false

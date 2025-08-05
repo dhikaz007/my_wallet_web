@@ -1,0 +1,15 @@
+part of 'screens.dart';
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: TextApp(
+        text: 'Profile',
+        size: FontAppSize.font_20,
+      ),
+    );
+  }
+}
