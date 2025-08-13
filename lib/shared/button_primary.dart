@@ -6,6 +6,8 @@ class ButtonPrimary extends StatelessWidget {
   final double? width;
   final double? height;
   final Widget? icon;
+  final IconAlignment align;
+
   const ButtonPrimary({
     super.key,
     required this.label,
@@ -13,6 +15,7 @@ class ButtonPrimary extends StatelessWidget {
     this.width,
     this.height,
     this.icon,
+    this.align = IconAlignment.start,
   });
 
   @override
@@ -24,12 +27,13 @@ class ButtonPrimary extends StatelessWidget {
             ? null
             : Size(width ?? 0.0, height ?? 0.0),
         backgroundColor: ColorApp.primary,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
+      iconAlignment: align,
       onPressed: onPressed,
       icon: icon,
       label: TextApp(
         text: label,
-        size: FontAppSize.font_12,
         weight: FontAppWeight.medium,
         color: ColorApp.white,
       ),
@@ -40,13 +44,23 @@ class ButtonPrimary extends StatelessWidget {
 class ButtonPrimaryText extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
-  const ButtonPrimaryText({super.key, required this.label, this.onPressed});
+  final Widget? icon;
+  final IconAlignment align;
+  const ButtonPrimaryText({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.icon,
+    this.align = IconAlignment.start,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return TextButton.icon(
       onPressed: onPressed,
-      child: TextApp(
+      icon: icon,
+      iconAlignment: align,
+      label: TextApp(
         text: label,
         size: FontAppSize.font_14,
         weight: FontAppWeight.medium,

@@ -11,10 +11,11 @@ class _ExpensesDailyScreenState extends State<ExpensesDailyScreen> {
   final TextEditingController _nameController =
       TextEditingController(text: 'Ada');
   final TextEditingController _dateController =
-      TextEditingController(text: '2025-08-04');
+      TextEditingController(text: DateTime.now().getFullDate(format: 4));
   final TextEditingController _valueController =
       TextEditingController(text: '95000');
   final TextEditingController _typeController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey();
   final GlobalKey<FormState> _typeFormKey = GlobalKey();
   final GlobalKey<SfDataGridState> _pdfKey = GlobalKey();
@@ -23,12 +24,14 @@ class _ExpensesDailyScreenState extends State<ExpensesDailyScreen> {
   final DateRangePickerController _dateRangePickerController =
       DateRangePickerController();
   TypeModel? _selectedValue;
+  late final TooltipBehavior _tooltipBehavior;
 
   @override
   void initState() {
     super.initState();
     context.read<ExpensesCubit>().getAllTagihan();
     context.read<TypeCubit>().getType();
+    _tooltipBehavior = TooltipBehavior(enable: true, format: 'point.y %');
   }
 
   @override
@@ -40,9 +43,71 @@ class _ExpensesDailyScreenState extends State<ExpensesDailyScreen> {
     super.dispose();
   }
 
+  void showRightSheet(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "RightSheet",
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (_, __, ___) {
+        return Material(
+          color: ColorApp.transparent,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              width: 240,
+              height: double.maxFinite,
+              color: Colors.white,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      BackButtonIcon(),
+                      Gap(12),
+                      TextApp(
+                        text: 'Filter',
+                        size: FontAppSize.font_16,
+                        weight: FontAppWeight.bold,
+                      ),
+                      Spacer(),
+                      ButtonSecondary(
+                        label: 'Reset',
+                        onPressed: () {},
+                      ),
+                      Gap(8),
+                      ButtonPrimary(
+                        label: 'Filter',
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: ListView(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (_, animation, __, child) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: const Offset(0, 0),
+        ).animate(animation);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final stateType = context.watch<TypeCubit>().state;
+    final expenseState = context.watch<ExpensesCubit>().state;
 
     return BackgroundApp(
       isScrollable: true,
@@ -50,179 +115,291 @@ class _ExpensesDailyScreenState extends State<ExpensesDailyScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Gap(8),
-          Dialog(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                
-              ],
-            ),
-          ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ButtonPrimary(
-                label: 'Add Data',
+              const TextApp(
+                text: 'Expenses Daily',
+                size: FontAppSize.font_18,
+                color: ColorApp.black,
+                weight: FontAppWeight.bold,
+              ),
+              ButtonSecondary(
+                label: 'Filter',
+                icon: Icon(
+                  Icons.filter_alt,
+                  color: ColorApp.black.withOpacity(.8),
+                ),
                 onPressed: () {
-                  if (stateType is TypeLoaded) {
-                    if (stateType.response.isNotEmpty) {
-                      _addDataDialog(context);
-                    } else {
-                      ToastService.show(
-                          type: SnackbarAppType.info,
-                          msg: "Type still empty please add at least one data");
-                    }
-                  }
+                  showRightSheet(context);
                 },
               ),
-              const Gap(12),
-              ButtonPrimary(
-                label: 'Add Type',
-                onPressed: () {
-                  _addTypeDialog(context);
-                },
+              SizedBox(
+                width: 240,
+                child: BlocBuilder<TypeCubit, TypeState>(
+                  builder: (context, state) {
+                    if (state is TypeLoading) {
+                      return const ShimerApp(h: 40);
+                    }
+
+                    if (state is TypeFailed) {
+                      return Center(
+                        child: TextApp(
+                          text: state.err,
+                          size: FontAppSize.font_14,
+                          color: ColorApp.black,
+                          weight: FontAppWeight.medium,
+                        ),
+                      );
+                    }
+                    if (state is TypeLoaded) {
+                      return DropdownApp(
+                        value: _selectedValue,
+                        validator: (value) {
+                          if (value == null || value.label.isEmpty) {
+                            return 'Pilih salah satu kategori';
+                          }
+                          return null;
+                        },
+                        hintText: 'Pilih Kategori',
+                        items: state.response
+                            .map(
+                              (e) => DropdownMenuItem<TypeModel>(
+                                value: e,
+                                child: TextApp(text: e.label),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedValue = value;
+                          });
+                        },
+                      );
+                    }
+                    return const Center(
+                      child: TextApp(
+                        text: 'No Data',
+                        size: FontAppSize.font_16,
+                        weight: FontAppWeight.medium,
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),
-          const Gap(24),
-          ButtonPrimary(
-            label: 'Export to PDF',
-            icon: SvgApp(
-              width: 20,
-              height: 20,
-              asset: IconsApp.icPdf,
-              color: ColorApp.white,
-            ),
-            onPressed: () => _exportPdf().then(
-              (_) => ToastService.show(
-                  type: SnackbarAppType.success,
-                  msg: 'Data Berhasil di export'),
+          const Gap(12),
+          Align(
+            alignment: Alignment.topRight,
+            child: ButtonPrimary(
+              label: 'Add Data',
+              onPressed: () {
+                Modular.to.pushNamed('/expenses/add-data');
+                // if (stateType is TypeLoaded) {
+                //   if (stateType.response.isNotEmpty) {
+                //     _addDataDialog(context);
+                //   } else {
+                //     ToastService.show(
+                //         type: SnackbarAppType.info,
+                //         msg: "Type still empty please add at least one data");
+                //   }
+                // }
+              },
             ),
           ),
-          const Gap(20),
-          BlocConsumer<ExpensesCubit, ExpensesState>(
-            listener: (context, state) async {
-              if (state is ExpensesLoading || state is ExpensesAddLoading) {
-                OverlayApp.showLoad(context);
-              }
-              if (state is! ExpensesLoading) {
-                OverlayApp.hideLoad(context);
-              }
-              if (state is ExpensesAddSuccess ||
-                  state is ExpensesDeleteSuccess ||
-                  state is ExpensesEditSuccess) {
-                context.read<ExpensesCubit>().getAllTagihan();
-              }
-            },
-            builder: (context, state) {
-              // print(state);
-              if (state is ExpensesLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(color: ColorApp.primary),
-                );
-              }
-
-              if (state is ExpensesLoaded) {
-                if (state.tagihan.isEmpty) {
-                  return const Center(
-                    child: TextApp(text: 'Data Kosong'),
-                  );
-                }
-
-                return SfDataGridTheme(
-                  data: SfDataGridThemeData(
-                    headerColor: ColorApp.primary.withAlpha(50),
-                    gridLineColor: ColorApp.black,
-                    gridLineStrokeWidth: 1.0,
-                  ),
-                  child: SfDataGrid(
-                    key: _pdfKey,
-                    source: TagihanDataSource(initialData: state.tagihan),
-                    gridLinesVisibility: GridLinesVisibility.both,
-                    headerGridLinesVisibility: GridLinesVisibility.both,
-                    columnWidthMode: ColumnWidthMode.fill,
-                    columnWidthCalculationRange:
-                        ColumnWidthCalculationRange.visibleRows,
-                    loadMoreViewBuilder: (context, loadMoreRows) =>
-                        LoadMoreWidget(
-                      loadMoreRows: loadMoreRows,
-                      showIndicator: _showIndicator,
-                      dataSource: TagihanDataSource(initialData: state.tagihan),
-                    ),
-                    columns: [
-                      titleColumn('No', 'No', maxWidth: 60),
-                      titleColumn('Created Date', 'Created Date'),
-                      titleColumn('Type', 'Type'),
-                      titleColumn('Name', 'Name'),
-                      titleColumn('Price', 'Actual'),
-                    ],
-                    tableSummaryRows: [
-                      GridTableSummaryRow(
-                        color: Colors.grey.withAlpha(50),
-                        showSummaryInRow: false,
-                        title: 'Total',
-                        titleColumnSpan: 4,
-                        columns: [
-                          const GridSummaryColumn(
-                            name: 'Total',
-                            columnName: 'Price',
-                            summaryType: GridSummaryType.sum,
-                          ),
-                        ],
-                        position: GridTableSummaryRowPosition.bottom,
-                      ),
-                    ],
-                    allowSwiping: true,
-                    endSwipeActionsBuilder: (context, dataGridRow, rowIndex) {
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: AnimatedButton(
-                              borderRadius: BorderRadius.circular(0),
-                              icon: Icons.delete,
-                              color: ColorApp.orange,
-                              text: 'Edit',
-                              pressEvent: () {},
-                            ),
-                          ),
-                          Expanded(
-                            child: AnimatedButton(
-                              borderRadius: BorderRadius.circular(0),
-                              icon: Icons.delete,
-                              color: ColorApp.primary,
-                              text: 'Delete',
-                              pressEvent: () {
-                                AwesomeDialog(
-                                  context: context,
-                                  dialogType: DialogType.question,
-                                  title: 'Delete data ?',
-                                  btnOkText: 'Yes',
-                                  btnCancelText: 'No',
-                                  btnCancelOnPress: () {
-                                    setState(() {});
-                                  },
-                                  btnOkOnPress: () {
-                                    final id = dataGridRow
-                                        .getCells()
-                                        .firstWhere(
-                                            (cell) => cell.columnName == 'id')
-                                        .value;
-                                    context
-                                        .read<ExpensesCubit>()
-                                        .deleteTagihan(id);
-                                  },
-                                ).show();
-                              },
-                            ),
-                          ),
-                        ],
-                      );
+          const Gap(8),
+          Align(
+            alignment: Alignment.topRight,
+            child: ButtonPrimary(
+              label: 'Add Type',
+              onPressed: () {
+                _addTypeDialog(context);
+              },
+            ),
+          ),
+          const Gap(24),
+          Row(
+            children: [
+              SizedBox(
+                width: 240,
+                child: TextFieldApp(
+                  controller: _searchController,
+                  hintText: 'Search....',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: ValueListenableBuilder(
+                    valueListenable: _searchController,
+                    builder: (context, value, child) {
+                      if (value.text.isNotEmpty) {
+                        return CloseButton(
+                          color: ColorApp.black,
+                          onPressed: () => _searchController.clear(),
+                        );
+                      } else {
+                        return const SizedBox.shrink();
+                      }
                     },
                   ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
+                  onSubmit: (value) {},
+                ),
+              ),
+              const Gap(12),
+              const Spacer(),
+              Align(
+                alignment: Alignment.topRight,
+                child: ButtonPrimary(
+                  label: 'Export to PDF',
+                  icon: SvgApp(
+                    width: 20,
+                    height: 20,
+                    asset: IconsApp.icPdf,
+                    color: ColorApp.white,
+                  ),
+                  onPressed: () => _exportPdf().then(
+                    (_) => ToastService.show(
+                        type: SnackbarAppType.success,
+                        msg: 'Data Berhasil di export'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Gap(20),
+          Row(
+            children: [
+              if (expenseState is ExpensesLoaded)
+                Expanded(
+                  // height: 300,
+                  child: ExpensesDailyChart(
+                      dataSource: expenseState.tagihan,
+                      tooltipBehavior: _tooltipBehavior),
+                ),
+              Expanded(
+                child: BlocConsumer<ExpensesCubit, ExpensesState>(
+                  listener: (context, state) async {
+                    if (state is ExpensesLoading ||
+                        state is ExpensesAddLoading) {
+                      OverlayApp.showLoad(context);
+                    }
+                    if (state is! ExpensesLoading) {
+                      OverlayApp.hideLoad(context);
+                    }
+                    if (state is ExpensesAddSuccess ||
+                        state is ExpensesDeleteSuccess ||
+                        state is ExpensesEditSuccess) {
+                      context.read<ExpensesCubit>().getAllTagihan();
+                    }
+                  },
+                  builder: (context, state) {
+                    // print(state);
+                    if (state is ExpensesLoading) {
+                      return const Center(
+                        child:
+                            CircularProgressIndicator(color: ColorApp.primary),
+                      );
+                    }
+
+                    if (state is ExpensesLoaded) {
+                      if (state.tagihan.isEmpty) {
+                        return const Center(
+                          child: TextApp(text: 'Data Kosong'),
+                        );
+                      }
+
+                      return SfDataGridTheme(
+                        data: SfDataGridThemeData(
+                          headerColor: ColorApp.primary.withAlpha(50),
+                          gridLineColor: ColorApp.black,
+                          gridLineStrokeWidth: 1.0,
+                        ),
+                        child: SfDataGrid(
+                          key: _pdfKey,
+                          source: TagihanDataSource(initialData: state.tagihan),
+                          gridLinesVisibility: GridLinesVisibility.both,
+                          headerGridLinesVisibility: GridLinesVisibility.both,
+                          columnWidthMode: ColumnWidthMode.fill,
+                          columnWidthCalculationRange:
+                              ColumnWidthCalculationRange.visibleRows,
+                          loadMoreViewBuilder: (context, loadMoreRows) =>
+                              LoadMoreWidget(
+                            loadMoreRows: loadMoreRows,
+                            showIndicator: _showIndicator,
+                            dataSource:
+                                TagihanDataSource(initialData: state.tagihan),
+                          ),
+                          columns: [
+                            titleColumn('No', 'No', maxWidth: 60),
+                            titleColumn('Created Date', 'Created Date'),
+                            titleColumn('Type', 'Type'),
+                            titleColumn('Name', 'Name'),
+                            titleColumn('Price', 'Actual'),
+                          ],
+                          tableSummaryRows: [
+                            GridTableSummaryRow(
+                              color: Colors.grey.withAlpha(50),
+                              showSummaryInRow: false,
+                              title: 'Total',
+                              titleColumnSpan: 4,
+                              columns: [
+                                const GridSummaryColumn(
+                                  name: 'Total',
+                                  columnName: 'Price',
+                                  summaryType: GridSummaryType.sum,
+                                ),
+                              ],
+                              position: GridTableSummaryRowPosition.bottom,
+                            ),
+                          ],
+                          allowSwiping: true,
+                          endSwipeActionsBuilder:
+                              (context, dataGridRow, rowIndex) {
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: ButtonSecondary(
+                                    label: 'Edit',
+                                    onPressed: () {},
+                                  ),
+                                ),
+                                Expanded(
+                                  child: ButtonPrimary(
+                                    label: 'Delete',
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        useRootNavigator: false,
+                                        barrierDismissible: false,
+                                        builder: (context) => DialogApp(
+                                          msg: 'Delete data ?',
+                                          yesBtn: () {
+                                            final id = dataGridRow
+                                                .getCells()
+                                                .firstWhere((cell) =>
+                                                    cell.columnName == 'No')
+                                                .value;
+                                            context
+                                                .read<ExpensesCubit>()
+                                                .deleteTagihan(id);
+                                            Navigator.of(context).pop();
+                                          },
+                                          noBtn: () =>
+                                              Navigator.of(context).pop(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -488,7 +665,7 @@ class _ExpensesDailyScreenState extends State<ExpensesDailyScreen> {
                             );
                           }
                           if (state is TypeLoaded) {
-                            return DropdownButtonFormField(
+                            return DropdownApp(
                               value: _selectedValue,
                               validator: (value) {
                                 if (value == null || value.label.isEmpty) {
@@ -496,31 +673,7 @@ class _ExpensesDailyScreenState extends State<ExpensesDailyScreen> {
                                 }
                                 return null;
                               },
-                              hint: const TextApp(text: 'Pilih Kategori'),
-                              focusColor: ColorApp.transparent,
-                              dropdownColor: ColorApp.white,
-                              decoration: InputDecoration(
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide:
-                                      const BorderSide(color: Colors.grey),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide:
-                                      const BorderSide(color: ColorApp.primary),
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide:
-                                      const BorderSide(color: Colors.red),
-                                ),
-                                focusedErrorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide:
-                                      const BorderSide(color: Colors.red),
-                                ),
-                              ),
+                              hintText: 'Pilih Kategori',
                               items: state.response
                                   .map(
                                     (e) => DropdownMenuItem<TypeModel>(

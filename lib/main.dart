@@ -5,19 +5,26 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:loader_overlay/loader_overlay.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'constants/constants.dart';
+import 'feature/auth/cubit/auth_cubit.dart';
 import 'feature/expenses/cubit/expenses_cubit.dart';
 import 'feature/expenses/cubit/type_cubit.dart';
+import 'feature/profile/cubit/profile_cubit.dart';
 import 'flavors.dart';
 import 'routes/routes.dart';
 import 'shared/shared.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await Supabase.initialize(
+    url: 'https://punpfmhfzcvlmkbemvle.supabase.co',
+    anonKey: 'sb_publishable_XbgKg2Juz5KayHC8VGmBJA_B516ERaU',
+  );
   initializeDateFormatting();
   FlavorMode.appFlavor = Flavor.values.firstWhere((e) => e.name == appFlavor);
+  Modular.setInitialRoute('/auth');
   runApp(
     ModularApp(
       module: AppRoutes(),
@@ -31,9 +38,10 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Modular.setInitialRoute('/');
     return MultiBlocProvider(
       providers: [
+        BlocProvider(create: (context) => AuthCubit()),
+        BlocProvider(create: (context) => ProfileCubit()),
         BlocProvider(create: (context) => ExpensesCubit()),
         BlocProvider(create: (context) => TypeCubit()),
       ],

@@ -7,6 +7,6 @@ import 'package:sembast_web/sembast_web.dart';
 
 import 'models/models.dart';
 
-part 'bill.dart';
+part 'expenses.dart';
 part 'type_expanses.dart';
 part 'type_income.dart';

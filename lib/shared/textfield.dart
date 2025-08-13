@@ -14,6 +14,8 @@ class TextFieldApp extends StatefulWidget {
   final bool digitOnly;
   final String? Function(String?)? validator;
   final bool? readOnly;
+  final Function(String)? onSubmit;
+  final bool noDecor;
   const TextFieldApp({
     super.key,
     required this.controller,
@@ -29,6 +31,8 @@ class TextFieldApp extends StatefulWidget {
     this.digitOnly = false,
     this.validator,
     this.readOnly,
+    this.onSubmit,
+    this.noDecor = false,
   });
 
   @override
@@ -87,42 +91,46 @@ class _TextFieldAppState extends State<TextFieldApp> {
           fontSize: 14,
           color: ColorApp.black,
         ),
-        decoration: InputDecoration(
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(widget.radius ?? 0),
-            borderSide: const BorderSide(color: Colors.grey),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(widget.radius ?? 0),
-            borderSide: const BorderSide(color: ColorApp.primary),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(widget.radius ?? 0),
-            borderSide: const BorderSide(color: ColorApp.red),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(widget.radius ?? 0),
-            borderSide: const BorderSide(color: ColorApp.red),
-          ),
-          prefixIcon: widget.prefixIcon,
-          suffixIcon: widget.suffixIcon ??
-              (widget.obscure == false
-                  ? null
-                  : InkWell(
-                      onTap: () => showPass.value = !showPass.value,
-                      child: showPass.value
-                          ? const Icon(Icons.visibility_off_outlined)
-                          : const Icon(Icons.visibility_outlined),
-                    )),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          hintText: widget.hintText,
-          hintStyle: const TextStyle(
-            fontSize: 14,
-            color: Color(0xff899197),
-          ),
-        ),
+        decoration: widget.noDecor
+            ? InputDecoration.collapsed(hintText: widget.hintText)
+            : InputDecoration(
+              labelText: '',
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(widget.radius ?? 0),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(widget.radius ?? 0),
+                  borderSide: const BorderSide(color: ColorApp.primary),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(widget.radius ?? 0),
+                  borderSide: const BorderSide(color: ColorApp.red),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(widget.radius ?? 0),
+                  borderSide: const BorderSide(color: ColorApp.red),
+                ),
+                prefixIcon: widget.prefixIcon,
+                suffixIcon: widget.suffixIcon ??
+                    (widget.obscure == false
+                        ? null
+                        : InkWell(
+                            onTap: () => showPass.value = !showPass.value,
+                            child: showPass.value
+                                ? const Icon(Icons.visibility_off_outlined)
+                                : const Icon(Icons.visibility_outlined),
+                          )),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                hintText: widget.hintText,
+                hintStyle: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xff899197),
+                ),
+              ),
         onChanged: widget.onChanged,
+        onFieldSubmitted: widget.onSubmit,
       ),
     );
   }

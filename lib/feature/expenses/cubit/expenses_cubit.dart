@@ -23,7 +23,7 @@ class ExpensesCubit extends Cubit<ExpensesState> {
       hasMoreData = true;
       _allTagihan.clear();
       final response =
-          await DatabaseBill.getAllTagihan(offset: offset, limit: limit);
+          await DatabaseExpenses.fetchAllExpenses(offset: offset, limit: limit);
       _allTagihan.addAll(response);
       offset += response.length;
       hasMoreData = response.length == limit;
@@ -37,7 +37,7 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     if (!hasMoreData) return;
     try {
       final data =
-          await DatabaseBill.getAllTagihan(offset: offset, limit: limit);
+          await DatabaseExpenses.fetchAllExpenses(offset: offset, limit: limit);
       if (data.isNotEmpty) {
         _allTagihan.addAll(data);
         offset += data.length;
@@ -56,7 +56,7 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     try {
       emit(ExpensesAddLoading());
       await Future.delayed(const Duration(milliseconds: 800));
-      await DatabaseBill.insertTagihan(tagihan);
+      await DatabaseExpenses.insertExpenses(tagihan);
       emit(ExpensesAddSuccess());
     } catch (e) {
       emit(ExpensesFailed(err: e.toString()));
@@ -67,7 +67,7 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     try {
       emit(ExpensesAddLoading());
       await Future.delayed(const Duration(milliseconds: 800));
-      await DatabaseBill.deleteTagihan(id);
+      await DatabaseExpenses.deleteExpenses(id);
       emit(ExpensesDeleteSuccess());
     } catch (e) {
       emit(ExpensesFailed(err: e.toString()));
@@ -78,7 +78,7 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     try {
       emit(ExpensesAddLoading());
       await Future.delayed(const Duration(milliseconds: 800));
-      await DatabaseBill.updateTagihan(tagihan);
+      await DatabaseExpenses.updateExpenses(tagihan);
       emit(ExpensesEditSuccess());
     } catch (e) {
       emit(ExpensesFailed(err: e.toString()));
@@ -89,7 +89,7 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     try {
       emit(ExpensesAddLoading());
       await Future.delayed(const Duration(milliseconds: 800));
-      await DatabaseBill.deleteAllTagihan();
+      await DatabaseExpenses.deleteDatabase();
       await DatabaseTypeExpanses.deleteDatabase();
       emit(ExpensesDeleteSuccess());
     } catch (e) {
@@ -101,7 +101,7 @@ class ExpensesCubit extends Cubit<ExpensesState> {
     try {
       emit(ExpensesLoading());
       await Future.delayed(const Duration(milliseconds: 800));
-      final response = await DatabaseBill.getByType(type: type);
+      final response = await DatabaseExpenses.fetchExpensesByType(type: type);
       double total = response.fold(0, (prev, item) {
         return prev + item.value;
       });

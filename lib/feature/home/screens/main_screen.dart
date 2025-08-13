@@ -1,7 +1,5 @@
 part of 'screens.dart';
 
-final GlobalKey<ScaffoldMessengerState> snackBarGlobalKey = GlobalKey();
-
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -16,6 +14,7 @@ class MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     ToastService.init(context);
+    context.read<ProfileCubit>().getUser();
   }
 
   @override
@@ -123,14 +122,14 @@ class MainScreenState extends State<MainScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () async {
-              await DatabaseBill.deleteAllTagihan();
-              await DatabaseTypeExpanses.deleteDatabase().then((_) {
-                context.read<ExpensesCubit>().getAllTagihan();
-                context.read<TypeCubit>().getType();
-              });
-            },
+            onPressed: () async {},
             icon: const Icon(Icons.delete),
+          ),
+          IconButton(
+            onPressed: () async {
+              await StorageToken().deleteAll();
+            },
+            icon: const Icon(Icons.add),
           ),
         ],
       ),
